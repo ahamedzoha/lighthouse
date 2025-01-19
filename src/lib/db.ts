@@ -5,63 +5,85 @@ export class TimeSeriesDB {
   constructor(private pool: Pool) {}
 
   async batchInsert(data: ScrapedData[]) {
-    // Validate data
-    if (!data?.length) {
-      throw new Error("No data to insert")
-    }
+    // Start a transaction for bulk insert
+    const client = await this.pool.connect()
+    try {
+      await client.query("BEGIN")
 
-    // Validate each record
-    data.forEach((record) => {
-      if (
-        !record.time ||
-        !record.metric_name ||
-        typeof record.value !== "number"
-      ) {
-        throw new Error(`Invalid record: ${JSON.stringify(record)}`)
+      const query = {
+        text: `
+          INSERT INTO scraped_data(time, source, metric_name, value, metadata)
+          SELECT * FROM UNNEST($1::timestamptz[], $2::varchar[], $3::varchar[], $4::float8[], $5::jsonb[])
+        `,
+        values: [
+          data.map((v) => v.time),
+          data.map((v) => v.source),
+          data.map((v) => v.metric_name),
+          data.map((v) => v.value),
+          data.map((v) => v.metadata),
+        ],
       }
-    })
 
-    const values = data.map((d) => ({
-      time: d.time,
-      source: d.source,
-      metric_name: d.metric_name,
-      value: d.value,
-      metadata: JSON.stringify(d.metadata),
-    }))
-
-    // Using pg's built-in parameterized queries
-    const query = {
-      text: `
-        INSERT INTO scraped_data(time, source, metric_name, value, metadata)
-        SELECT * FROM UNNEST($1::timestamptz[], $2::varchar[], $3::varchar[], $4::float8[], $5::jsonb[])
-      `,
-      values: [
-        values.map((v) => v.time),
-        values.map((v) => v.source),
-        values.map((v) => v.metric_name),
-        values.map((v) => v.value),
-        values.map((v) => v.metadata),
-      ],
+      await client.query(query)
+      await client.query("COMMIT")
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
     }
-
-    return this.pool.query(query)
   }
 
-  // Add methods for common time-series queries
-  async getMetricsByTimeRange(metric: string, start: Date, end: Date) {
+  // Optimized time-series queries
+  async getLatestMetrics(limit = 10) {
     return this.pool.query(
       `
-      SELECT time_bucket('1 hour', time) AS hour,
-             avg(value) as avg_value,
-             max(value) as max_value,
-             min(value) as min_value
-      FROM scraped_data 
-      WHERE metric_name = $1 
-        AND time BETWEEN $2 AND $3
-      GROUP BY hour
-      ORDER BY hour DESC
+      SELECT DISTINCT ON (metric_name)
+        time, source, metric_name, value, metadata
+      FROM scraped_data
+      ORDER BY metric_name, time DESC
+      LIMIT $1
     `,
-      [metric, start, end]
+      [limit]
     )
+  }
+
+  async getMetricsByTimeRange(
+    metric: string,
+    start: Date,
+    end: Date,
+    interval = "1 hour"
+  ) {
+    return this.pool.query(
+      `
+      SELECT 
+        time_bucket($1, time) AS bucket,
+        metric_name,
+        avg(value) as avg_value,
+        min(value) as min_value,
+        max(value) as max_value,
+        count(*) as sample_count
+      FROM scraped_data 
+      WHERE metric_name = $2 
+        AND time BETWEEN $3 AND $4
+      GROUP BY bucket, metric_name
+      ORDER BY bucket DESC
+    `,
+      [interval, metric, start, end]
+    )
+  }
+
+  // Add compression policy if needed
+  async setupCompression(chunk_interval = "7 days") {
+    await this.pool.query(`
+      ALTER TABLE scraped_data SET (
+        timescaledb.compress,
+        timescaledb.compress_segmentby = 'metric_name,source'
+      );
+    `)
+
+    await this.pool.query(`
+      SELECT add_compression_policy('scraped_data', INTERVAL '${chunk_interval}');
+    `)
   }
 }

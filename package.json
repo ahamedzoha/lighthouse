@@ -18,7 +18,8 @@
     "temporal:delete-schedule": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 schedule delete",
     "temporal:list-schedules": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 schedule list",
     "temporal:list-workflows": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 workflow list",
-    "workflow:trigger": "ts-node src/scripts/triggerWorkflow.ts"
+    "workflow:trigger": "ts-node src/scripts/triggerWorkflow.ts",
+    "verify:db": "ts-node src/scripts/verifyTimeSeriesData.ts"
   },
   "repository": {
     "type": "git",

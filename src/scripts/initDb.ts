@@ -88,4 +88,48 @@ async function initializeDatabase() {
   }
 }
 
-initializeDatabase().catch(console.error)
+async function optimizeTimeSeriesDB() {
+  const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || "5432"),
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+  })
+
+  try {
+    // Enable compression
+    await pool.query(`
+      ALTER TABLE scraped_data SET (
+        timescaledb.compress,
+        timescaledb.compress_segmentby = 'metric_name,source'
+      );
+    `)
+
+    // Add compression policy (compress data older than 7 days)
+    await pool.query(`
+      SELECT add_compression_policy('scraped_data', INTERVAL '7 days');
+    `)
+
+    // Create indexes for better query performance
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_scraped_data_metric_time 
+      ON scraped_data (metric_name, time DESC);
+      
+      CREATE INDEX IF NOT EXISTS idx_scraped_data_source_time 
+      ON scraped_data (source, time DESC);
+    `)
+
+    console.log("TimescaleDB optimizations applied successfully")
+  } catch (error) {
+    console.error("Failed to apply optimizations:", error)
+  } finally {
+    await pool.end()
+  }
+}
+
+initializeDatabase()
+  .then(async () => {
+    await optimizeTimeSeriesDB()
+  })
+  .catch(console.error)
