@@ -17,6 +17,7 @@ export async function dseScraperWorkflow(): Promise<void> {
 
   if (hour === 14 && minute > 30) {
     console.log("Outside trading hours, skipping")
+    await sleep("1 hour")
     return
   }
 
