@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.git
+.gitignore
+.env
+.env.*
+.docker
+.vscode
+*.md
+dist
+coverage
+.nyc_output
+*.log
+tmp
+temp 
