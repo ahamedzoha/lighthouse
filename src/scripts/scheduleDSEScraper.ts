@@ -1,6 +1,16 @@
 import { Client } from "@temporalio/client"
 import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow"
 
+/**
+ * Schedules the DSE scraper workflow using Temporal's cron functionality.
+ *
+ * This script creates a schedule for the DSE scraper workflow with a cron expression
+ * that runs the workflow every 2 minutes between 10:00 and 14:00 on weekdays.
+ *
+ * @example
+ * // To schedule the workflow:
+ * // npm run start:scheduler
+ */
 async function run() {
   const client = new Client()
 

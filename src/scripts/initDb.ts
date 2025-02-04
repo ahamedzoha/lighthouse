@@ -4,6 +4,16 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
+/**
+ * Initializes the application database.
+ *
+ * This script checks if the user and database exist, creates them if necessary,
+ * grants the required privileges, and initializes the tables (including creating a hypertable).
+ *
+ * @example
+ * // To initialize the database:
+ * // npm run init:db
+ */
 async function initializeDatabase() {
   // Connect as postgres user (default superuser)
   const adminPool = new Pool({
@@ -15,7 +25,7 @@ async function initializeDatabase() {
   })
 
   try {
-    // Create user if not exists - using string interpolation for DDL
+    // Create user if not exists
     await adminPool.query(`
       DO $$
       BEGIN
@@ -88,6 +98,15 @@ async function initializeDatabase() {
   }
 }
 
+/**
+ * Applies optimizations to the Time-Series database.
+ *
+ * This includes enabling TimescaleDB compression, adding a compression policy,
+ * and creating indexes for faster queries.
+ *
+ * @example
+ * await optimizeTimeSeriesDB();
+ */
 async function optimizeTimeSeriesDB() {
   const pool = new Pool({
     host: process.env.DB_HOST,

@@ -1,40 +1,122 @@
 import { Pool } from "pg"
 import { ScrapedData } from "../types"
 
+/**
+ * TimeSeriesDB handles operations for managing and querying time-series data
+ * stored in a TimescaleDB database.
+ */
 export class TimeSeriesDB {
+  /**
+   * Creates an instance of TimeSeriesDB.
+   *
+   * @param {Pool} pool - A PostgreSQL connection pool.
+   *
+   * @example
+   * const { Pool } = require("pg");
+   * const pool = new Pool({
+   *   host: "localhost",
+   *   port: 5432,
+   *   database: "lighthouse_db",
+   *   user: "lighthouse_user",
+   *   password: "password"
+   * });
+   * const db = new TimeSeriesDB(pool);
+   */
   constructor(private pool: Pool) {}
 
+  /**
+   * Inserts a batch of scraped data records into the 'scraped_data' table.
+   *
+   * The insertion is performed as a single bulk insert within a transaction,
+   * ensuring that either all records are inserted or the transaction rolls back on error.
+   *
+   * @param {ScrapedData[]} data - An array of scraped data records.
+   * @returns {Promise<void>} A Promise that resolves when the data has been successfully inserted.
+   *
+   * @throws {Error} If the insertion fails, the transaction is rolled back and the error is thrown.
+   *
+   * @example
+   * const data = [{
+   *   time: new Date(),
+   *   source: "dse_bd",
+   *   metric_name: "ABC",
+   *   value: 10.5,
+   *   metadata: {
+   *     high: 11,
+   *     low: 10,
+   *     close_price: 10.3,
+   *     ycp: 10.1,
+   *     change: 0.4,
+   *     trade_count: 123,
+   *     value_mn: 5.6,
+   *     volume: 1000
+   *   }
+   * }];
+   * await timeSeriesDB.batchInsert(data);
+   */
   async batchInsert(data: ScrapedData[]) {
-    // Start a transaction for bulk insert
+    if (!data.length) {
+      console.warn("No data to insert")
+      return
+    }
+
     const client = await this.pool.connect()
     try {
       await client.query("BEGIN")
 
+      // Prepare values for bulk insert.
+      // Each record expands to 5 columns, so we create parameter placeholders dynamically.
+      const values = data
+        .map(
+          (d, i) =>
+            `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${
+              i * 5 + 5
+            })`
+        )
+        .join(",")
+
+      // Flatten the data into a single array in the order of the columns.
+      const flatValues = data.flatMap((d) => [
+        d.time,
+        d.source,
+        d.metric_name,
+        d.value,
+        d.metadata,
+      ])
+
       const query = {
         text: `
           INSERT INTO scraped_data(time, source, metric_name, value, metadata)
-          SELECT * FROM UNNEST($1::timestamptz[], $2::varchar[], $3::varchar[], $4::float8[], $5::jsonb[])
+          VALUES ${values}
         `,
-        values: [
-          data.map((v) => v.time),
-          data.map((v) => v.source),
-          data.map((v) => v.metric_name),
-          data.map((v) => v.value),
-          data.map((v) => v.metadata),
-        ],
+        values: flatValues,
       }
 
       await client.query(query)
       await client.query("COMMIT")
+
+      console.log(`Successfully inserted ${data.length} records`)
     } catch (error) {
       await client.query("ROLLBACK")
+      console.error("Database insertion failed:", error)
       throw error
     } finally {
       client.release()
     }
   }
 
-  // Optimized time-series queries
+  /**
+   * Retrieves the latest unique metrics from the 'scraped_data' table.
+   *
+   * Returns distinct records per metric_name sorted by the latest time.
+   *
+   * @param {number} [limit=10] - The maximum number of records to return.
+   * @returns {Promise<any>} A Promise resolving to the query result.
+   *
+   * @example
+   * const result = await timeSeriesDB.getLatestMetrics();
+   * console.log(result.rows);
+   */
   async getLatestMetrics(limit = 10) {
     return this.pool.query(
       `
@@ -48,6 +130,21 @@ export class TimeSeriesDB {
     )
   }
 
+  /**
+   * Retrieves aggregated metrics data for a given metric within a specified time range.
+   *
+   * The data is aggregated into time buckets based on the provided interval.
+   *
+   * @param {string} metric - The metric name to filter by.
+   * @param {Date} start - The start time of the range.
+   * @param {Date} end - The end time of the range.
+   * @param {string} [interval="1 hour"] - The time bucket interval (e.g., "1 hour").
+   * @returns {Promise<any>} A Promise resolving to the aggregated query result.
+   *
+   * @example
+   * const result = await timeSeriesDB.getMetricsByTimeRange("ABC", new Date("2021-01-01"), new Date());
+   * console.log(result.rows);
+   */
   async getMetricsByTimeRange(
     metric: string,
     start: Date,
@@ -73,7 +170,18 @@ export class TimeSeriesDB {
     )
   }
 
-  // Add compression policy if needed
+  /**
+   * Applies compression to the 'scraped_data' table and sets up a compression policy.
+   *
+   * This method enables TimescaleDB's compression on the table and adds a policy that
+   * automatically compresses data older than the specified interval.
+   *
+   * @param {string} [chunk_interval="7 days"] - The interval after which data chunks will be compressed.
+   * @returns {Promise<void>} A Promise that resolves when the policy is applied.
+   *
+   * @example
+   * await timeSeriesDB.setupCompression("7 days");
+   */
   async setupCompression(chunk_interval = "7 days") {
     await this.pool.query(`
       ALTER TABLE scraped_data SET (

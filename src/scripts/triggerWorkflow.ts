@@ -1,6 +1,16 @@
 import { Client } from "@temporalio/client"
 import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow"
 
+/**
+ * Triggers a manual instance of the DSE scraper workflow.
+ *
+ * This script starts the dseScraperWorkflow as a one-off manual workflow and optionally
+ * waits for its result.
+ *
+ * @example
+ * // To trigger the workflow manually:
+ * // npm run workflow:trigger
+ */
 async function run() {
   const client = new Client()
 

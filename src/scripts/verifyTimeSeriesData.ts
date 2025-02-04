@@ -3,6 +3,16 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
+/**
+ * Verifies the state of the TimescaleDB time-series database.
+ *
+ * This script queries the hypertable status, recent data samples, and compression settings,
+ * printing the results to the console.
+ *
+ * @example
+ * // To verify the database:
+ * // npm run verify:db
+ */
 async function verifyData() {
   const pool = new Pool({
     host: process.env.DB_HOST,

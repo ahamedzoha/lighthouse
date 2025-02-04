@@ -1,44 +1,87 @@
-import { DSEStockData, DSEScrapeResult, ScrapedData } from "../../types"
+import { DSEStockData, ScrapedData } from "../../types"
 import puppeteer from "puppeteer"
 
+/**
+ * Scrapes stock market data from the DSE website.
+ *
+ * This function uses Puppeteer to load the DSE latest share price page, waits for the
+ * stock table to load, and then extracts and parses data from each row. The returned data
+ * includes the trading code, last trade price, and other metrics that are stored along with a timestamp.
+ *
+ * @returns {Promise<ScrapedData[]>} A promise that resolves to an array of scraped data objects.
+ *
+ * @throws {Error} If the webpage fails to load or no stock data is found.
+ *
+ * @example
+ * (async () => {
+ *   try {
+ *     const data = await scrapeDSE();
+ *     console.log("Scraped data:", data);
+ *   } catch (error) {
+ *     console.error("Scraping error:", error);
+ *   }
+ * })();
+ */
 export async function scrapeDSE(): Promise<ScrapedData[]> {
   const url = "https://dsebd.org/latest_share_price_scroll_l.php"
 
-  const browser = await puppeteer.launch({ headless: true })
+  const browser = await puppeteer.launch({
+    headless: true,
+    // Add these options to help with reliability
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  })
+
   try {
     const page = await browser.newPage()
+
+    // Add user agent to avoid blocking
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
+
     await page.goto(url, {
       waitUntil: "networkidle0",
-      timeout: 30000,
+      timeout: 60000, // Increase timeout
     })
 
-    await page.waitForSelector("table tr", { timeout: 5000 })
+    // Wait for table to load
+    await page.waitForSelector("table.table-bordered tr", { timeout: 10000 })
 
     const stocks = await page.evaluate(() => {
-      const rows = document.querySelectorAll("table tr")
+      const rows = document.querySelectorAll("table.table-bordered tr")
       return Array.from(rows)
-        .slice(1) // Skip header
+        .slice(1) // Skip header row
         .map((row) => {
-          const cols = row.querySelectorAll("td")
+          const cols = Array.from(row.querySelectorAll("td"))
           if (cols.length < 10) return null
 
+          const getText = (col: Element) => col?.textContent?.trim() || ""
+          const getNumber = (col: Element) => parseFloat(getText(col)) || 0
+          const getInt = (col: Element) =>
+            parseInt(getText(col).replace(/,/g, "")) || 0
+
           return {
-            trading_code: cols[1]?.textContent?.trim() || "",
-            ltp: parseFloat(cols[2]?.textContent?.trim() || "0"),
-            high: parseFloat(cols[3]?.textContent?.trim() || "0"),
-            low: parseFloat(cols[4]?.textContent?.trim() || "0"),
-            close_price: parseFloat(cols[5]?.textContent?.trim() || "0"),
-            ycp: parseFloat(cols[6]?.textContent?.trim() || "0"),
-            change: parseFloat(cols[7]?.textContent?.trim() || "0"),
-            trade_count: parseInt(cols[8]?.textContent?.trim() || "0"),
-            value_mn: parseFloat(cols[9]?.textContent?.trim() || "0"),
-            volume: parseInt(
-              (cols[10]?.textContent?.trim() || "0").replace(/,/g, "")
-            ),
+            trading_code: getText(cols[1]),
+            ltp: getNumber(cols[2]),
+            high: getNumber(cols[3]),
+            low: getNumber(cols[4]),
+            close_price: getNumber(cols[5]),
+            ycp: getNumber(cols[6]),
+            change: getNumber(cols[7]),
+            trade_count: getInt(cols[8]),
+            value_mn: getNumber(cols[9]),
+            volume: getInt(cols[10]),
           }
         })
-        .filter((stock): stock is DSEStockData => stock !== null)
+        .filter(
+          (stock): stock is DSEStockData =>
+            stock !== null && stock.trading_code !== ""
+        )
     })
+
+    if (!stocks.length) {
+      throw new Error("No stock data found")
+    }
 
     return stocks.map((stock) => ({
       time: new Date(),
