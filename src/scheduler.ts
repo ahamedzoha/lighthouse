@@ -18,6 +18,7 @@ async function run() {
       action: {
         type: "startWorkflow",
         workflowType: dseScraperWorkflow,
+        args: [true],
         taskQueue: "scraping",
         workflowId: "dse-scraper-${scheduleTime}",
         memo: {

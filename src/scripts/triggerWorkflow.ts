@@ -16,9 +16,11 @@ async function run() {
 
   try {
     const workflowId = `dse-scraper-manual-${Date.now()}`
+    const bypassTradingHoursCheck = true
     const handle = await client.workflow.start(dseScraperWorkflow, {
       taskQueue: "scraping",
       workflowId,
+      args: [bypassTradingHoursCheck],
     })
 
     console.log(`Manual workflow started with ID: ${workflowId}`)

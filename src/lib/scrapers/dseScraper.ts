@@ -84,7 +84,7 @@ export async function scrapeDSE(): Promise<ScrapedData[]> {
     }
 
     return stocks.map((stock) => ({
-      time: new Date(),
+      time: new Date().toISOString(),
       source: "dse_bd",
       metric_name: stock.trading_code,
       value: stock.ltp,

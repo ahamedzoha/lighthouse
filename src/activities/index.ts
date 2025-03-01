@@ -29,13 +29,17 @@ const metadataSchema = z.object({
   value_mn: z.number(),
   volume: z.number(),
 })
+
 const ScrapedDataSchema = z.object({
-  time: z.date(),
+  time: z
+    .union([z.string(), z.date()])
+    .transform((val) => (val instanceof Date ? val : new Date(val))),
   source: z.string(),
   metric_name: z.string(),
   value: z.number(),
   metadata: metadataSchema,
 })
+
 const ScrapedDataArraySchema = z.array(ScrapedDataSchema)
 
 export const activities = {

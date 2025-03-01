@@ -22,14 +22,29 @@ const { scrapeActivity, validateActivity, insertDbActivity } =
  * @example
  * // This workflow is usually scheduled by Temporal and executed by a worker.
  * await dseScraperWorkflow();
+ * await dseScraperWorkflow(true); // Bypass trading hours check
+ *
+ * @param bypassTradingHoursCheck - Optional flag to bypass trading hours check
  */
-export async function dseScraperWorkflow(): Promise<void> {
+export async function dseScraperWorkflow(
+  bypassTradingHoursCheck = false
+): Promise<void> {
   // Simple trading hours check (10:00-14:30 BD time)
   const now = new Date()
   const hour = now.getHours()
-  if (hour < 10 || hour > 14) return
+  if (!bypassTradingHoursCheck && (hour < 10 || hour > 14)) return
 
-  const rawData = await scrapeActivity()
-  const validatedData = await validateActivity(rawData)
-  await insertDbActivity(validatedData)
+  try {
+    const rawData = await scrapeActivity()
+    console.log("Scraped data sample:", rawData[0])
+
+    const validatedData = await validateActivity(rawData)
+    console.log("Validation successful")
+
+    await insertDbActivity(validatedData)
+    console.log("Data inserted successfully")
+  } catch (error) {
+    console.error("Workflow failed:", error)
+    throw error
+  }
 }

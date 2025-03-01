@@ -1,5 +1,5 @@
 export interface ScrapedData {
-  time: Date
+  time: Date | string // Allow both Date and string
   source: string
   metric_name: string
   value: number
