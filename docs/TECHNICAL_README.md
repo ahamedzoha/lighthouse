@@ -112,6 +112,30 @@ export async function getTemporalClient(): Promise<Client> {
 }
 ```
 
+## Utility Scripts Documentation
+
+### triggerWorkflow.ts
+```typescript
+/**
+ * Manually triggers a DSE scraping workflow
+ * @param {boolean} bypassTradingHours - Whether to bypass trading hours check
+ * @example
+ * npm run trigger:workflow
+ * npm run trigger:workflow -- --bypass
+ */
+```
+
+### verifyTimeSeriesData.ts
+```typescript
+/**
+ * Verifies time-series data integrity and hypertable configuration
+ * @param {Date} startDate - Start of verification period
+ * @param {Date} endDate - End of verification period
+ * @example 
+ * npm run verify:data -- --start 2025-01-01 --end 2025-01-31
+ */
+```
+
 ## Database Schema
 
 ### Time-Series Data Table
@@ -278,6 +302,27 @@ async function handleScrapingError(
 }
 ```
 
+### Enhanced Error Classification
+
+```typescript
+enum ScrapedDataError {
+  NETWORK = 'NETWORK_ERROR',
+  PARSING = 'DATA_PARSING_ERROR',
+  VALIDATION = 'VALIDATION_FAILED',
+  DATABASE = 'DATABASE_ERROR'
+}
+
+function classifyError(error: Error): ScrapedDataError {
+  if (error.message.includes('ECONNREFUSED')) {
+    return ScrapedDataError.NETWORK;
+  }
+  if (error.message.includes('validation')) {
+    return ScrapedDataError.VALIDATION;
+  }
+  return ScrapedDataError.PARSING;
+}
+```
+
 ## Monitoring and Maintenance
 
 ### Health Checks
@@ -300,23 +345,41 @@ export async function checkSystemHealth(): Promise<HealthStatus> {
 ### Performance Monitoring
 
 Key metrics to monitor:
-
 - Scraping success rate
 - Data ingestion rate
 - Query performance
 - Resource utilization
 
+### Current Monitoring Implementation
+
+```mermaid
+graph TB
+    subgraph "Monitoring"
+        T[Temporal UI] --> Temporal
+        P[Prometheus] --> Grafana
+        Prometheus --> NodeExporter
+    end
+```
+
+### Setup Instructions
+```bash
+# Start monitoring stack
+docker-compose -f monitoring-compose.yml up -d
+
+# Access dashboards
+open http://localhost:3000  # Grafana
+open http://localhost:8080  # Temporal UI
+```
+
 ## Security Considerations
 
 ### Data Protection
-
 - All sensitive data is encrypted at rest
 - Database connections use TLS
 - Credentials are stored in environment variables
 - Regular security audits are performed
 
 ### Access Control
-
 - Principle of least privilege
 - Role-based access control
 - Regular credential rotation
@@ -352,6 +415,35 @@ async function analyzeScrapeFailure(
   // Implementation
 }
 ```
+
+### Detailed Diagnostic Procedures
+
+1. **Database Connection Issues**
+   ```bash
+   # Verify TimescaleDB status
+   docker ps --filter name=timescaledb
+   
+   # Test connection
+   PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c '\dt'
+   ```
+
+2. **Scraping Failures**
+   ```bash
+   # Run scraper in debug mode
+   DEBUG=puppeteer:* npm run test:scraper
+   
+   # Check for website changes
+   curl -v https://dsebd.org/latest_share_price_scroll_l.php
+   ```
+
+3. **Workflow Execution Issues**
+   ```bash
+   # Check Temporal UI for workflow history
+   open http://localhost:8080
+   
+   # View worker logs
+   docker logs temporal-worker --tail 100
+   ```
 
 ## API Documentation
 
@@ -396,14 +488,12 @@ export async function scheduleScrapingWorkflow(
 ## Contributing Guidelines
 
 1. Code Style
-
 - Use TypeScript
 - Follow ESLint configuration
 - Add JSDoc comments
 - Write unit tests
 
 2. Pull Request Process
-
 - Create feature branch
 - Add tests
 - Update documentation
