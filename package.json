@@ -9,7 +9,7 @@
     "start:scheduler": "ts-node src/scheduler.ts",
     "dev:worker": "nodemon src/worker.ts",
     "dev:scheduler": "nodemon src/scheduler.ts",
-    "init:db": "ts-node src/scripts/initDB.ts",
+    "init:db": "ts-node src/scripts/initDb.ts",
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "test:scraper": "ts-node src/scripts/testScraper.ts",
