@@ -15,7 +15,7 @@
     "test:scraper": "ts-node src/scripts/testScraper.ts",
     "test:scraper:db": "ts-node src/scripts/testScraper.ts --test-db",
     "temporal:terminate": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 workflow terminate --workflow-id",
-    "temporal:delete-schedule": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 schedule delete",
+    "temporal:delete-schedule": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 schedule delete --sid",
     "temporal:list-schedules": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 schedule list",
     "temporal:list-workflows": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 workflow list",
     "workflow:trigger": "ts-node src/scripts/triggerWorkflow.ts",

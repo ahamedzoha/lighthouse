@@ -1,0 +1,92 @@
+# docker-compose.coolify.yml - Configuration specifically for Coolify Deployment
+# NOTE: This file is NOT used for local development.
+
+services:
+  # Application Database (TimescaleDB Extension on PostgreSQL)
+  timescaledb:
+    image: timescale/timescaledb:2.13.1-pg14
+    environment:
+      # Define these in Coolify Environment Variables:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      # Static User:
+      POSTGRES_USER: postgres
+    # ports: section removed - Internal access via Coolify network is sufficient
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # networks: section removed
+
+  # Temporal Persistence Database (Standard PostgreSQL)
+  temporal-postgresql:
+    image: postgres:14
+    environment:
+      # Define these in Coolify Environment Variables (or rely on defaults):
+      POSTGRES_USER: ${TEMPORAL_DB_USER:-temporal}      # Default: temporal
+      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:-temporal} # Default: temporal
+      # Static DB Name:
+      POSTGRES_DB: temporal
+    # ports: section removed - Internal access via Coolify network is sufficient
+    volumes:
+      - temporal_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Uses the parameterized user for the check
+      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # networks: section removed
+
+  # Temporal Server (Using auto-setup image - Note production considerations)
+  temporal:
+    image: temporalio/auto-setup:1.22.3
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432 # Internal port Temporal uses to reach postgres
+      # Uses parameterized credentials matching temporal-postgresql service:
+      - POSTGRES_USER=${TEMPORAL_DB_USER:-temporal}
+      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:-temporal}
+      # Connects to the postgres service using its service name:
+      - POSTGRES_SEEDS=temporal-postgresql
+      # Mounts dynamic config from volume:
+      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development.yaml
+    ports:
+      # Keep 7233 exposed for internal linking and potential external access:
+      - "7233:7233"
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    volumes:
+      # Ensure './temporal-config' directory exists in your Git repo:
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      # Checks if the cluster is healthy via tctl inside the container
+      test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # networks: section removed
+
+  # Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    ports:
+      # Keep 8080 exposed for access via Coolify FQDN/domain:
+      - "8080:8080"
+    environment:
+      # Connects to the temporal service using its service name:
+      - TEMPORAL_ADDRESS=temporal:7233
+    depends_on:
+      - temporal
+    # networks: section removed
+
+# Top-level networks definition removed
+
+# Named volumes for persistent data storage (Coolify creates these)
+volumes:
+  timescale_data:
+  temporal_postgres_data:
