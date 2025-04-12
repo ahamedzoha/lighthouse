@@ -91,21 +91,21 @@ services:
     # networks: section removed
 
 # Temporal Admin Tools (for running tctl commands via exec)
-  temporal-admin-tools:
-    # Use a matching version tag if possible, otherwise use latest cautiously
-    image: temporalio/admin-tools:1.22 # Or latest version like 1.23, check Docker Hub if 1.22 doesn't exist
-    container_name: temporal-admin-tools # Optional but can be helpful for exec commands
-    depends_on:
-      - temporal
-    environment:
-      # Points tctl inside this container to the temporal service
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CLI_ADDRESS=temporal:7233
-    # ports: section removed - Not typically needed
-    networks: # This should still be removed/commented if applying Coolify logic
-      # - temporal-network 
-    stdin_open: true # Keep for interactive tctl
-    tty: true        # Keep for interactive tctl
+  # temporal-admin-tools:
+  #   # Use a matching version tag if possible, otherwise use latest cautiously
+  #   image: temporalio/admin-tools:1.22 # Or latest version like 1.23, check Docker Hub if 1.22 doesn't exist
+  #   container_name: temporal-admin-tools # Optional but can be helpful for exec commands
+  #   depends_on:
+  #     - temporal
+  #   environment:
+  #     # Points tctl inside this container to the temporal service
+  #     - TEMPORAL_ADDRESS=temporal:7233
+  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
+  #   # ports: section removed - Not typically needed
+  #   networks: # This should still be removed/commented if applying Coolify logic
+  #     # - temporal-network 
+  #   stdin_open: true # Keep for interactive tctl
+  #   tty: true        # Keep for interactive tctl
 
 # Top-level networks definition removed
 
