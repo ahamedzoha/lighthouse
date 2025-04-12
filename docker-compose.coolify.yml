@@ -80,9 +80,34 @@ services:
     environment:
       # Connects to the temporal service using its service name:
       - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     depends_on:
       - temporal
     # networks: section removed
+  # Temporal Admin Tools
+  #  temporal-admin-tools:
+  #   container_name: temporal-admin-tools
+  #   depends_on:
+  #     - temporal
+  #   environment:
+  #     - TEMPORAL_ADDRESS=temporal:7233
+  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
+  #   image: temporalio/admin-tools:${TEMPORAL_ADMINTOOLS_VERSION}
+  #   networks:
+  #     - temporal-network
+  #   stdin_open: true
+  #   tty: true
+  temporal-admin-tools:
+    image: temporalio/admin-tools
+    ports:
+      - "8081:8081"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    depends_on:
+      - temporal
+    # networks: section removed
+    stdin_open: true
+    tty: true
 
 # Top-level networks definition removed
 
