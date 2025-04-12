@@ -74,10 +74,22 @@ services:
       timeout: 5s
       retries: 5
     # networks: section removed
-     # --- DEBUGGING COMMAND ---
-    # Override the default command to list the directory and sleep
-    # This prevents the main process from starting and erroring immediately
-    command: ["sh", "-c", "ls -l /etc/temporal/config/dynamicconfig/ && echo '--- Mount content listed, sleeping ---' && sleep 3600"]
+     # --- NEW DEBUGGING COMMAND ---
+    # More verbose command to inspect the mount and file
+    command: >
+      sh -c "
+      echo '--- DEBUG: Listing parent directory /etc/temporal/config/ ---' &&
+      ls -l /etc/temporal/config/ &&
+      echo '--- DEBUG: Listing target directory /etc/temporal/config/dynamicconfig/ ---' &&
+      ls -l /etc/temporal/config/dynamicconfig/ &&
+      echo '--- DEBUG: Attempting to cat file /etc/temporal/config/dynamicconfig/development.yaml ---' &&
+      cat /etc/temporal/config/dynamicconfig/development.yaml &&
+      echo '--- DEBUG: Finished OK, sleeping ---' &&
+      sleep 3600 ||
+      (echo '--- DEBUG: Cat command likely failed (is a directory?), listing target directory again and sleeping ---' &&
+       ls -l /etc/temporal/config/dynamicconfig/ &&
+       sleep 3600)
+      "
     # --- END DEBUGGING COMMAND ---
 
   # Temporal Web UI
