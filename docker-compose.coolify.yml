@@ -66,7 +66,7 @@ services:
         condition: service_healthy
     volumes:
       # Ensure './temporal-config' directory exists in your Git repo:
-       - ./temporal-config/development.yaml:/etc/temporal/config/dynamicconfig/development.yaml
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
     healthcheck:
       # Checks if the cluster is healthy via tctl inside the container
       test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
@@ -74,6 +74,11 @@ services:
       timeout: 5s
       retries: 5
     # networks: section removed
+     # --- DEBUGGING COMMAND ---
+    # Override the default command to list the directory and sleep
+    # This prevents the main process from starting and erroring immediately
+    command: ["sh", "-c", "ls -l /etc/temporal/config/dynamicconfig/ && echo '--- Mount content listed, sleeping ---' && sleep 3600"]
+    # --- END DEBUGGING COMMAND ---
 
   # Temporal Web UI
   temporal-ui:
@@ -88,30 +93,23 @@ services:
     depends_on:
       - temporal
     # networks: section removed
-  # Temporal Admin Tools
-  #  temporal-admin-tools:
-  #   container_name: temporal-admin-tools
-  #   depends_on:
-  #     - temporal
-  #   environment:
-  #     - TEMPORAL_ADDRESS=temporal:7233
-  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
-  #   image: temporalio/admin-tools:${TEMPORAL_ADMINTOOLS_VERSION}
-  #   networks:
-  #     - temporal-network
-  #   stdin_open: true
-  #   tty: true
+
+# Temporal Admin Tools (for running tctl commands via exec)
   temporal-admin-tools:
-    image: temporalio/admin-tools
-    ports:
-      - "8081:8081"
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
+    # Use a matching version tag if possible, otherwise use latest cautiously
+    image: temporalio/admin-tools:1.22 # Or latest version like 1.23, check Docker Hub if 1.22 doesn't exist
+    container_name: temporal-admin-tools # Optional but can be helpful for exec commands
     depends_on:
       - temporal
-    # networks: section removed
-    stdin_open: true
-    tty: true
+    environment:
+      # Points tctl inside this container to the temporal service
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    # ports: section removed - Not typically needed
+    networks: # This should still be removed/commented if applying Coolify logic
+      # - temporal-network 
+    stdin_open: true # Keep for interactive tctl
+    tty: true        # Keep for interactive tctl
 
 # Top-level networks definition removed
 
