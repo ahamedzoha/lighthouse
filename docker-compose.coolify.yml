@@ -66,7 +66,7 @@ services:
         condition: service_healthy
     volumes:
       # Ensure './temporal-config' directory exists in your Git repo:
-      - ./temporal-config:/etc/temporal/config/dynamicconfig
+      - ./config:/etc/temporal/config/dynamicconfig
     healthcheck:
       # Checks if the cluster is healthy via tctl inside the container
       test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
@@ -74,25 +74,7 @@ services:
       timeout: 5s
       retries: 5
     # networks: section removed
-    # --- NEW DEBUGGING Entrypoint + Command ---
-    # Explicitly set entrypoint to sh and pass command string via -c
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - > # This multi-line string is the script passed to "sh -c"
-          echo '--- DEBUG: Overriding Entrypoint ---' &&
-          echo '--- DEBUG: Listing parent directory /etc/temporal/config/ ---' &&
-          ls -l /etc/temporal/config/ &&
-          echo '--- DEBUG: Listing target directory /etc/temporal/config/dynamicconfig/ ---' &&
-          ls -l /etc/temporal/config/dynamicconfig/ &&
-          echo '--- DEBUG: Attempting to cat file /etc/temporal/config/dynamicconfig/development.yaml ---' &&
-          cat /etc/temporal/config/dynamicconfig/development.yaml &&
-          echo '--- DEBUG: Finished OK, sleeping ---' &&
-          sleep 3600 ||
-          (echo '--- DEBUG: Cat command likely failed (is a directory?), listing target directory again and sleeping ---' &&
-           ls -l /etc/temporal/config/dynamicconfig/ &&
-           sleep 3600)
-    # --- END DEBUGGING ---
+    
 
   # Temporal Web UI
   temporal-ui:
