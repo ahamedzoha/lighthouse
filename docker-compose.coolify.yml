@@ -12,6 +12,8 @@ services:
       # Static User:
       POSTGRES_USER: postgres
     # ports: section removed - Internal access via Coolify network is sufficient
+    ports:
+      - 5432:5432
     volumes:
       - timescale_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,6 +33,8 @@ services:
       # Static DB Name:
       POSTGRES_DB: temporal
     # ports: section removed - Internal access via Coolify network is sufficient
+    ports:
+      - 5432:5432
     volumes:
       - temporal_postgres_data:/var/lib/postgresql/data
     healthcheck:
