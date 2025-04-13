@@ -1,5 +1,5 @@
 import { Pool } from "pg"
-import { ScrapedData } from "../types"
+import { ScrapedData } from "../types.ts"
 
 /**
  * TimeSeriesDB handles operations for managing and querying time-series data

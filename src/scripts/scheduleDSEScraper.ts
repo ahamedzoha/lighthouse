@@ -1,5 +1,5 @@
 import { Client } from "@temporalio/client"
-import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow"
+import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow.ts"
 
 /**
  * Schedules the DSE scraper workflow using Temporal's cron functionality.

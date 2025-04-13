@@ -1,5 +1,5 @@
 import { Client } from "@temporalio/client"
-import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow"
+import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow.ts"
 
 /**
  * Triggers a manual instance of the DSE scraper workflow.

@@ -1,4 +1,4 @@
-import { activities } from "../activities/index"
+import { activities } from "../activities/index.ts"
 import { Pool } from "pg"
 import dotenv from "dotenv"
 
