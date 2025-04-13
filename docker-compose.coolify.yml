@@ -1,5 +1,4 @@
 # docker-compose.coolify.yml - Configuration specifically for Coolify Deployment
-# NOTE: This file is NOT used for local development.
 
 services:
   # Application Database (TimescaleDB Extension on PostgreSQL)
@@ -9,11 +8,8 @@ services:
       # Define these in Coolify Environment Variables:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-      # Static User:
       POSTGRES_USER: postgres
-    # ports: section removed - Internal access via Coolify network is sufficient
-    ports:
-      - 5432:5432
+    # ports: section removed - Internal access only
     volumes:
       - timescale_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    # networks: section removed
+    restart: unless-stopped # Added restart policy
 
   # Temporal Persistence Database (Standard PostgreSQL)
   temporal-postgresql:
@@ -30,20 +26,16 @@ services:
       # Define these in Coolify Environment Variables (or rely on defaults):
       POSTGRES_USER: ${TEMPORAL_DB_USER:-temporal}      # Default: temporal
       POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:-temporal} # Default: temporal
-      # Static DB Name:
       POSTGRES_DB: temporal
-    # ports: section removed - Internal access via Coolify network is sufficient
-    ports:
-      - 5433:5432
+    # ports: section removed - Internal access only
     volumes:
       - temporal_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      # Uses the parameterized user for the check
       test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal} -d temporal"]
       interval: 10s
       timeout: 5s
       retries: 5
-    # networks: section removed
+    restart: unless-stopped # Added restart policy
 
   # Temporal Server (Using auto-setup image - Note production considerations)
   temporal:
@@ -51,12 +43,9 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=5432 # Internal port Temporal uses to reach postgres
-      # Uses parameterized credentials matching temporal-postgresql service:
       - POSTGRES_USER=${TEMPORAL_DB_USER:-temporal}
       - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD:-temporal}
-      # Connects to the postgres service using its service name:
-      - POSTGRES_SEEDS=temporal-postgresql
-      # Mounts dynamic config from volume:
+      - POSTGRES_SEEDS=temporal-postgresql # Connects to the postgres service name
       - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development.yaml
     ports:
       # Keep 7233 exposed for internal linking and potential external access:
@@ -65,16 +54,15 @@ services:
       temporal-postgresql:
         condition: service_healthy
     volumes:
-      # Ensure './temporal-config' directory exists in your Git repo:
+      # Mount config from host path prepared by Coolify
+      # Assumes temporal-config dir exists in repo root
       - ./temporal-config:/etc/temporal/config/dynamicconfig
     healthcheck:
-      # Checks if the cluster is healthy via tctl inside the container
       test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
       interval: 10s
       timeout: 5s
       retries: 5
-    # networks: section removed
-    
+    restart: unless-stopped # Added restart policy
 
   # Temporal Web UI
   temporal-ui:
@@ -85,31 +73,95 @@ services:
     environment:
       # Connects to the temporal service using its service name:
       - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      # - TEMPORAL_CORS_ORIGINS=http://localhost:3000 # Likely not needed for prod
     depends_on:
       - temporal
-    # networks: section removed
+    restart: unless-stopped # Added restart policy
 
-# Temporal Admin Tools (for running tctl commands via exec)
-  # temporal-admin-tools:
-  #   # Use a matching version tag if possible, otherwise use latest cautiously
-  #   image: temporalio/admin-tools:1.22 # Or latest version like 1.23, check Docker Hub if 1.22 doesn't exist
-  #   container_name: temporal-admin-tools # Optional but can be helpful for exec commands
-  #   depends_on:
-  #     - temporal
-  #   environment:
-  #     # Points tctl inside this container to the temporal service
-  #     - TEMPORAL_ADDRESS=temporal:7233
-  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
-  #   # ports: section removed - Not typically needed
-  #   networks: # This should still be removed/commented if applying Coolify logic
-  #     # - temporal-network 
-  #   stdin_open: true # Keep for interactive tctl
-  #   tty: true        # Keep for interactive tctl
+  # Temporal Admin Tools (Optional, for exec commands)
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.22 # Or a newer compatible version
+    container_name: temporal-admin-tools-${COOLIFY_CONTAINER_NAME:-local} # Optional
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    stdin_open: true
+    tty: true
+    restart: 'no' # Doesn't need to run continuously
 
-# Top-level networks definition removed
+  # --- Database Initializer Service ---
+  db-init:
+    build:
+      context: . # Uses the same Dockerfile
+    # Runs the compiled initDb script
+    command: ["node", "dist/scripts/initDb.js"]
+    environment:
+      # Inherit necessary DB connection vars from Coolify secrets
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - NODE_ENV=production
+    depends_on:
+      timescaledb: # Waits for the database service
+        condition: service_healthy
+    restart: 'no' # Run only once per 'docker compose up' or deployment
 
-# Named volumes for persistent data storage (Coolify creates these)
+  # --- Application Services ---
+  worker:
+    build:
+      context: . # Uses the same Dockerfile
+    command: ["node", "dist/worker.js"] # Runs the compiled worker
+    restart: unless-stopped
+    environment:
+      # Use simple service names for connection
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - NODE_ENV=production
+      # Add any other production env vars needed by the worker
+    depends_on:
+      # Depends on infra being ready, init job doesn't need to complete first
+      # if the init script is idempotent (safe to run multiple times)
+      - temporal
+      - timescaledb
+      # - db-init # Optionally depend on init finishing, but can slow startup
+
+  scheduler:
+    build:
+      context: . # Uses the same Dockerfile
+    command: ["node", "dist/scheduler.js"] # Runs the compiled scheduler
+    restart: unless-stopped
+    environment:
+      # Use simple service names for connection
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - NODE_ENV=production
+      # Add any other production env vars needed by the scheduler
+    depends_on:
+      - temporal
+      - timescaledb
+      # - db-init # Optionally depend on init finishing
+
+# Named volumes for persistent data storage (Coolify maps these)
 volumes:
   timescale_data:
+    name: ${COOLIFY_RESOURCE_UUID:-local}_timescale_data # Use Coolify naming convention
   temporal_postgres_data:
+    name: ${COOLIFY_RESOURCE_UUID:-local}_temporal_postgres_data # Use Coolify naming convention
+
+# Note: Coolify defines the network externally based on generated compose
+# networks:
+#   default:
+#     name: ${COOLIFY_RESOURCE_UUID:-lighthouse-network}
+#     external: true # Important for potential future cross-stack communication if needed
