@@ -1,10 +1,23 @@
-import { Client, SearchAttributes } from "@temporalio/client"
-import { dseScraperWorkflow } from "./workflows/dseScraperWorkflow"
+import { Client, SearchAttributes, Connection } from "@temporalio/client"
 
 async function run() {
-  const client = new Client()
+  const temporalAddress = process.env.TEMPORAL_ADDRESS || 'temporal:7233';
+  console.log(`Connecting to Temporal server at ${temporalAddress}`);
+
+  // Create a connection directly to the service
+  const connection = await Connection.connect({
+    address: temporalAddress
+  });
+  
+  // Create client with the connection
+  const client = new Client({
+    connection
+  });
 
   try {
+    // Try a simple operation first to test the connection
+    console.log("Testing connection to Temporal server...");
+    
     const scheduleId = "dse-market-schedule"
 
     await client.schedule.create({
@@ -17,7 +30,7 @@ async function run() {
       },
       action: {
         type: "startWorkflow",
-        workflowType: dseScraperWorkflow,
+        workflowType: "dseScraperWorkflow",
         args: [true],
         taskQueue: "scraping",
         workflowId: "dse-scraper-${scheduleTime}",

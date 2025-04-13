@@ -1,12 +1,14 @@
-import { scrapeDSE } from "../lib/scrapers/dseScraper"
-import { TimeSeriesDB } from "../lib/db"
-import { Pool } from "pg"
+import { scrapeDSE } from "../lib/scrapers/dseScraper.ts"
+import { TimeSeriesDB } from "../lib/db.ts"
+import pg from "pg"
 import dotenv from "dotenv"
 import { z } from "zod"
-import { ScrapedData } from "../types"
+import { ScrapedData } from "../types.ts"
 
 // Load environment variables
 dotenv.config()
+
+const { Pool } = pg;
 
 const db = new TimeSeriesDB(
   new Pool({

@@ -1,4 +1,4 @@
-import { DSEStockData, ScrapedData } from "../../types"
+import { DSEStockData, ScrapedData } from "../../types.ts"
 import puppeteer from "puppeteer"
 
 /**

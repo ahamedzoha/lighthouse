@@ -69,6 +69,73 @@ services:
       - temporal
     networks:
       - lighthouse-network
+      
+  worker:
+    build:
+      context: . # Build using Dockerfile in the current directory
+    # Use container_name for easier local identification (optional)
+    container_name: lighthouse-worker-dev
+    command: ["npx", "nodemon", "--exec", "node --loader ts-node/esm", "src/worker.ts"] 
+    volumes:
+      # Mount local source code into the container
+      # Needed for nodemon to detect changes
+      - ./src:/app/src
+      # Mount tsconfig.json
+      - ./tsconfig.json:/app/tsconfig.json
+      # Use anonymous volume to prevent local node_modules overwriting container's
+      - /app/node_modules
+    environment:
+      # Enable debugging
+      - DEBUG=temporal*,workflow*
+      # Connect to infra services using their service names
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      # Read DB name and password from local .env file
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Add other dev-specific env vars if needed
+      - NODE_ENV=development
+    depends_on:
+      - temporal
+      - timescaledb
+    networks:
+      - lighthouse-network
+    # Add stdin_open/tty if needed for specific debugging, usually not for workers
+    # stdin_open: true
+    # tty: true
+
+  scheduler:
+    build:
+      context: . # Build using Dockerfile in the current directory
+    container_name: lighthouse-scheduler-dev # Optional
+    command: ["npx", "nodemon", "--exec", "node --loader ts-node/esm", "src/scheduler.ts"]
+    volumes:
+      # Mount local source code
+      - ./src:/app/src
+      # Mount tsconfig.json
+      - ./tsconfig.json:/app/tsconfig.json
+      # Use anonymous volume for node_modules
+      - /app/node_modules
+    environment:
+      # Enable debugging
+      - DEBUG=temporal*,workflow*
+      # Connect to infra services using their service names
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      # Read DB name and password from local .env file
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Add other dev-specific env vars if needed
+      - NODE_ENV=development
+    depends_on:
+      - temporal
+      - timescaledb
+    networks:
+      - lighthouse-network
 
 networks:
   lighthouse-network:
