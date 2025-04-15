@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.dseScraperWorkflow = dseScraperWorkflow;
-const workflow_1 = require("@temporalio/workflow");
-const { scrapeActivity, validateActivity, insertDbActivity } = (0, workflow_1.proxyActivities)({
+import { proxyActivities } from "@temporalio/workflow";
+const { scrapeActivity, validateActivity, insertDbActivity } = proxyActivities({
     startToCloseTimeout: "2 minutes",
     retry: {
         maximumAttempts: 3,
@@ -25,7 +22,7 @@ const { scrapeActivity, validateActivity, insertDbActivity } = (0, workflow_1.pr
  *
  * @param bypassTradingHoursCheck - Optional flag to bypass trading hours check
  */
-async function dseScraperWorkflow(bypassTradingHoursCheck = false) {
+export async function dseScraperWorkflow(bypassTradingHoursCheck = false) {
     // Simple trading hours check (10:00-14:30 BD time)
     const now = new Date();
     const hour = now.getHours();

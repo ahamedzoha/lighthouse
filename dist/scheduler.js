@@ -1,10 +1,18 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@temporalio/client");
-const dseScraperWorkflow_1 = require("./workflows/dseScraperWorkflow");
+import { Client, Connection } from "@temporalio/client";
 async function run() {
-    const client = new client_1.Client();
+    const temporalAddress = process.env.TEMPORAL_ADDRESS || 'temporal:7233';
+    console.log(`Connecting to Temporal server at ${temporalAddress}`);
+    // Create a connection directly to the service
+    const connection = await Connection.connect({
+        address: temporalAddress
+    });
+    // Create client with the connection
+    const client = new Client({
+        connection
+    });
     try {
+        // Try a simple operation first to test the connection
+        console.log("Testing connection to Temporal server...");
         const scheduleId = "dse-market-schedule";
         await client.schedule.create({
             scheduleId,
@@ -16,7 +24,7 @@ async function run() {
             },
             action: {
                 type: "startWorkflow",
-                workflowType: dseScraperWorkflow_1.dseScraperWorkflow,
+                workflowType: "dseScraperWorkflow",
                 args: [true],
                 taskQueue: "scraping",
                 workflowId: "dse-scraper-${scheduleTime}",

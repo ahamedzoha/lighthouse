@@ -1,12 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const index_1 = require("../activities/index");
-const dotenv_1 = __importDefault(require("dotenv"));
+import { activities } from "../activities/index.js";
+import dotenv from "dotenv";
 // Load environment variables
-dotenv_1.default.config();
+dotenv.config();
 /**
  * Tests the complete scraping pipeline.
  *
@@ -25,16 +20,16 @@ async function testScrape() {
     try {
         // Test scraping activity.
         console.log("Testing scrape activity...");
-        const rawData = await index_1.activities.scrapeActivity();
+        const rawData = await activities.scrapeActivity();
         console.log(`Scraped ${rawData.length} records`);
         // Test validation activity.
         console.log("Validating scraped data...");
-        const validatedData = await index_1.activities.validateActivity(rawData);
+        const validatedData = await activities.validateActivity(rawData);
         console.log(`Validated ${validatedData.length} records`);
         // Test DB insertion (optional).
         if (process.argv.includes("--test-db")) {
             console.log("\nTesting database insertion...");
-            await index_1.activities.insertDbActivity(validatedData);
+            await activities.insertDbActivity(validatedData);
             console.log("Successfully inserted into database");
         }
     }

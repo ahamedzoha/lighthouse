@@ -1,17 +1,12 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.activities = void 0;
-const dseScraper_1 = require("../lib/scrapers/dseScraper");
-const db_1 = require("../lib/db");
-const pg_1 = require("pg");
-const dotenv_1 = __importDefault(require("dotenv"));
-const zod_1 = require("zod");
+import { scrapeDSE } from "../lib/scrapers/dseScraper.js";
+import { TimeSeriesDB } from "../lib/db.js";
+import pg from "pg";
+import dotenv from "dotenv";
+import { z } from "zod";
 // Load environment variables
-dotenv_1.default.config();
-const db = new db_1.TimeSeriesDB(new pg_1.Pool({
+dotenv.config();
+const { Pool } = pg;
+const db = new TimeSeriesDB(new Pool({
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT || "5432"),
     database: process.env.DB_NAME,
@@ -19,27 +14,27 @@ const db = new db_1.TimeSeriesDB(new pg_1.Pool({
     password: process.env.DB_PASSWORD,
 }));
 // Define Zod schemas for metadata & the overall scraped data.
-const metadataSchema = zod_1.z.object({
-    high: zod_1.z.number(),
-    low: zod_1.z.number(),
-    close_price: zod_1.z.number(),
-    ycp: zod_1.z.number(),
-    change: zod_1.z.number(),
-    trade_count: zod_1.z.number(),
-    value_mn: zod_1.z.number(),
-    volume: zod_1.z.number(),
+const metadataSchema = z.object({
+    high: z.number(),
+    low: z.number(),
+    close_price: z.number(),
+    ycp: z.number(),
+    change: z.number(),
+    trade_count: z.number(),
+    value_mn: z.number(),
+    volume: z.number(),
 });
-const ScrapedDataSchema = zod_1.z.object({
-    time: zod_1.z
-        .union([zod_1.z.string(), zod_1.z.date()])
+const ScrapedDataSchema = z.object({
+    time: z
+        .union([z.string(), z.date()])
         .transform((val) => (val instanceof Date ? val : new Date(val))),
-    source: zod_1.z.string(),
-    metric_name: zod_1.z.string(),
-    value: zod_1.z.number(),
+    source: z.string(),
+    metric_name: z.string(),
+    value: z.number(),
     metadata: metadataSchema,
 });
-const ScrapedDataArraySchema = zod_1.z.array(ScrapedDataSchema);
-exports.activities = {
+const ScrapedDataArraySchema = z.array(ScrapedDataSchema);
+export const activities = {
     /**
      * Activity to perform the scraping.
      *
@@ -49,7 +44,7 @@ exports.activities = {
      * const rawData = await activities.scrapeActivity();
      */
     scrapeActivity: async () => {
-        return await (0, dseScraper_1.scrapeDSE)();
+        return await scrapeDSE();
     },
     /**
      * Activity to validate the raw scraped data using Zod.

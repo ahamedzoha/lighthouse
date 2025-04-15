@@ -1,10 +1,4 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.scrapeDSE = scrapeDSE;
-const puppeteer_1 = __importDefault(require("puppeteer"));
+import puppeteer from "puppeteer";
 /**
  * Scrapes stock market data from the DSE website.
  *
@@ -26,9 +20,9 @@ const puppeteer_1 = __importDefault(require("puppeteer"));
  *   }
  * })();
  */
-async function scrapeDSE() {
+export async function scrapeDSE() {
     const url = "https://dsebd.org/latest_share_price_scroll_l.php";
-    const browser = await puppeteer_1.default.launch({
+    const browser = await puppeteer.launch({
         headless: true,
         // Add these options to help with reliability
         args: ["--no-sandbox", "--disable-setuid-sandbox"],

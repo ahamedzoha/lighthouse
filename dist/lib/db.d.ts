@@ -1,8 +1,11 @@
+import { Pool } from "pg";
+import { ScrapedData } from "../types.ts";
 /**
  * TimeSeriesDB handles operations for managing and querying time-series data
  * stored in a TimescaleDB database.
  */
-export class TimeSeriesDB {
+export declare class TimeSeriesDB {
+    private pool;
     /**
      * Creates an instance of TimeSeriesDB.
      *
@@ -19,9 +22,7 @@ export class TimeSeriesDB {
      * });
      * const db = new TimeSeriesDB(pool);
      */
-    constructor(pool) {
-        this.pool = pool;
-    }
+    constructor(pool: Pool);
     /**
      * Inserts a batch of scraped data records into the 'scraped_data' table.
      *
@@ -52,47 +53,7 @@ export class TimeSeriesDB {
      * }];
      * await timeSeriesDB.batchInsert(data);
      */
-    async batchInsert(data) {
-        if (!data.length) {
-            console.warn("No data to insert");
-            return;
-        }
-        const client = await this.pool.connect();
-        try {
-            await client.query("BEGIN");
-            // Prepare values for bulk insert.
-            // Each record expands to 5 columns, so we create parameter placeholders dynamically.
-            const values = data
-                .map((d, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`)
-                .join(",");
-            // Flatten the data into a single array in the order of the columns.
-            const flatValues = data.flatMap((d) => [
-                d.time,
-                d.source,
-                d.metric_name,
-                d.value,
-                d.metadata,
-            ]);
-            const query = {
-                text: `
-          INSERT INTO scraped_data(time, source, metric_name, value, metadata)
-          VALUES ${values}
-        `,
-                values: flatValues,
-            };
-            await client.query(query);
-            await client.query("COMMIT");
-            console.log(`Successfully inserted ${data.length} records`);
-        }
-        catch (error) {
-            await client.query("ROLLBACK");
-            console.error("Database insertion failed:", error);
-            throw error;
-        }
-        finally {
-            client.release();
-        }
-    }
+    batchInsert(data: ScrapedData[]): Promise<void>;
     /**
      * Retrieves the latest unique metrics from the 'scraped_data' table.
      *
@@ -105,15 +66,7 @@ export class TimeSeriesDB {
      * const result = await timeSeriesDB.getLatestMetrics();
      * console.log(result.rows);
      */
-    async getLatestMetrics(limit = 10) {
-        return this.pool.query(`
-      SELECT DISTINCT ON (metric_name)
-        time, source, metric_name, value, metadata
-      FROM scraped_data
-      ORDER BY metric_name, time DESC
-      LIMIT $1
-    `, [limit]);
-    }
+    getLatestMetrics(limit?: number): Promise<import("pg").QueryResult<any>>;
     /**
      * Retrieves aggregated metrics data for a given metric within a specified time range.
      *
@@ -129,22 +82,7 @@ export class TimeSeriesDB {
      * const result = await timeSeriesDB.getMetricsByTimeRange("ABC", new Date("2021-01-01"), new Date());
      * console.log(result.rows);
      */
-    async getMetricsByTimeRange(metric, start, end, interval = "1 hour") {
-        return this.pool.query(`
-      SELECT 
-        time_bucket($1, time) AS bucket,
-        metric_name,
-        avg(value) as avg_value,
-        min(value) as min_value,
-        max(value) as max_value,
-        count(*) as sample_count
-      FROM scraped_data 
-      WHERE metric_name = $2 
-        AND time BETWEEN $3 AND $4
-      GROUP BY bucket, metric_name
-      ORDER BY bucket DESC
-    `, [interval, metric, start, end]);
-    }
+    getMetricsByTimeRange(metric: string, start: Date, end: Date, interval?: string): Promise<import("pg").QueryResult<any>>;
     /**
      * Applies compression to the 'scraped_data' table and sets up a compression policy.
      *
@@ -157,15 +95,5 @@ export class TimeSeriesDB {
      * @example
      * await timeSeriesDB.setupCompression("7 days");
      */
-    async setupCompression(chunk_interval = "7 days") {
-        await this.pool.query(`
-      ALTER TABLE scraped_data SET (
-        timescaledb.compress,
-        timescaledb.compress_segmentby = 'metric_name,source'
-      );
-    `);
-        await this.pool.query(`
-      SELECT add_compression_policy('scraped_data', INTERVAL '${chunk_interval}');
-    `);
-    }
+    setupCompression(chunk_interval?: string): Promise<void>;
 }

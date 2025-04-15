@@ -1,12 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
 // src/scripts/initDb.ts
-const pg_1 = require("pg");
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
+import { Pool } from "pg";
+import dotenv from "dotenv";
+dotenv.config();
 /**
  * Initializes the application database.
  *
@@ -19,7 +14,7 @@ dotenv_1.default.config();
  */
 async function initializeDatabase() {
     // Connect as postgres user (default superuser)
-    const adminPool = new pg_1.Pool({
+    const adminPool = new Pool({
         host: process.env.DB_HOST,
         port: parseInt(process.env.DB_PORT || "5432"),
         database: "postgres",
@@ -51,7 +46,7 @@ async function initializeDatabase() {
         console.log("User and database setup completed");
         await adminPool.end();
         // Connect to the new database to create tables
-        const appPool = new pg_1.Pool({
+        const appPool = new Pool({
             host: process.env.DB_HOST,
             port: parseInt(process.env.DB_PORT || "5432"),
             database: process.env.DB_NAME,
@@ -100,7 +95,7 @@ async function initializeDatabase() {
  * await optimizeTimeSeriesDB();
  */
 async function optimizeTimeSeriesDB() {
-    const pool = new pg_1.Pool({
+    const pool = new Pool({
         host: process.env.DB_HOST,
         port: parseInt(process.env.DB_PORT || "5432"),
         database: process.env.DB_NAME,

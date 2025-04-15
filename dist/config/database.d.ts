@@ -1,6 +1,4 @@
 import { Pool } from "pg";
-import dotenv from "dotenv";
-dotenv.config();
 /**
  * Creates a PostgreSQL connection pool configured for the TimescaleDB database.
  *
@@ -11,13 +9,7 @@ dotenv.config();
  * import { pool } from "./config/database";
  * pool.query("SELECT NOW()", (err, res) => console.log(res));
  */
-export const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432"),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-});
+export declare const pool: Pool;
 /**
  * Checks whether the database connection is working.
  *
@@ -31,15 +23,4 @@ export const pool = new Pool({
  *   console.error("Database connection failed");
  * }
  */
-export async function checkDatabaseConnection() {
-    try {
-        const client = await pool.connect();
-        await client.query("SELECT NOW()");
-        client.release();
-        return true;
-    }
-    catch (error) {
-        console.error("Database connection failed:", error);
-        return false;
-    }
-}
+export declare function checkDatabaseConnection(): Promise<boolean>;

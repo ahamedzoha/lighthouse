@@ -1,6 +1,4 @@
-import { Connection, Client } from "@temporalio/client";
-import dotenv from "dotenv";
-dotenv.config();
+import { Client } from "@temporalio/client";
 /**
  * Creates and returns a configured Temporal client.
  *
@@ -16,13 +14,4 @@ dotenv.config();
  *   console.log("Workflow started:", handle.workflowId);
  * })();
  */
-export async function getTemporalClient() {
-    const connection = await Connection.connect({
-        address: process.env.TEMPORAL_ADDRESS || "localhost:7233",
-        // Add TLS settings if needed
-    });
-    return new Client({
-        connection,
-        namespace: "default", // specify default namespace
-    });
-}
+export declare function getTemporalClient(): Promise<Client>;

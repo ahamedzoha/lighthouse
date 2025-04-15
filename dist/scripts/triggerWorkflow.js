@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@temporalio/client");
-const dseScraperWorkflow_1 = require("../workflows/dseScraperWorkflow");
+import { Client } from "@temporalio/client";
+import { dseScraperWorkflow } from "../workflows/dseScraperWorkflow.js";
 /**
  * Triggers a manual instance of the DSE scraper workflow.
  *
@@ -13,11 +11,11 @@ const dseScraperWorkflow_1 = require("../workflows/dseScraperWorkflow");
  * // npm run workflow:trigger
  */
 async function run() {
-    const client = new client_1.Client();
+    const client = new Client();
     try {
         const workflowId = `dse-scraper-manual-${Date.now()}`;
         const bypassTradingHoursCheck = true;
-        const handle = await client.workflow.start(dseScraperWorkflow_1.dseScraperWorkflow, {
+        const handle = await client.workflow.start(dseScraperWorkflow, {
             taskQueue: "scraping",
             workflowId,
             args: [bypassTradingHoursCheck],
