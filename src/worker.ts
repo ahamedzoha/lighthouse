@@ -33,7 +33,7 @@ async function run() {
     const worker = await Worker.create({
       connection,
       workflowsPath: path.resolve(
-        __dirname, 'workflows', 'dseScraperWorkflow.ts'),
+        __dirname, 'workflows', 'dseScraperWorkflow.js'),
       activities,
       taskQueue: "scraping"
     })
