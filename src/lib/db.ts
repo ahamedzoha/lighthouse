@@ -1,4 +1,6 @@
-import { Pool } from "pg"
+import pkg from "pg"
+const { Pool } = pkg
+import type { Pool as PoolType } from "pg"
 import { ScrapedData } from "../types.ts"
 
 /**
@@ -22,7 +24,7 @@ export class TimeSeriesDB {
    * });
    * const db = new TimeSeriesDB(pool);
    */
-  constructor(private pool: Pool) {}
+  constructor(private pool: PoolType) {}
 
   /**
    * Inserts a batch of scraped data records into the 'scraped_data' table.
