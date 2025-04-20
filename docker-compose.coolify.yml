@@ -62,6 +62,14 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped # Added restart policy
+    labels:
+      - "caddy_0=https://temporal-server.azazahamed.com"
+      - "caddy_0.protocols=h2 http/1.1"  # Explicitly enable HTTP/2
+      - "caddy_0.reverse_proxy={{upstreams 7233}} {
+           transport http {
+             versions h2c 2
+           }
+         }"
 
   # Temporal Web UI
   temporal-ui:
