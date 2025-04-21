@@ -86,15 +86,15 @@ services:
     restart: unless-stopped # Added restart policy
 
   # Temporal Admin Tools (Optional, for exec commands)
-  temporal-admin-tools:
-    image: temporalio/admin-tools:1.22 # Or a newer compatible version
-    container_name: temporal-admin-tools-${COOLIFY_CONTAINER_NAME:-local} # Optional
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CLI_ADDRESS=temporal:7233
-    stdin_open: true
-    tty: true
-    restart: 'no' # Doesn't need to run continuously
+  # temporal-admin-tools:
+  #   image: temporalio/admin-tools:1.22 # Or a newer compatible version
+  #   container_name: temporal-admin-tools-${COOLIFY_CONTAINER_NAME:-local} # Optional
+  #   environment:
+  #     - TEMPORAL_ADDRESS=temporal:7233
+  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
+  #   stdin_open: true
+  #   tty: true
+  #   restart: 'no' # Doesn't need to run continuously
 
   # --- Database Initializer Service --- (temporarily disabled)
   # db-init:

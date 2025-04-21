@@ -2,8 +2,6 @@
   "name": "lighthouse",
   "version": "1.0.0",
   "description": "## Project Overview",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
     "build": "tsc",
     "start:worker": "ts-node src/worker.ts",
@@ -23,6 +21,15 @@
     "temporal:list-workflows": "docker exec lighthouse-temporal-1 tctl --address temporal:7233 workflow list",
     "workflow:trigger": "ts-node src/scripts/triggerWorkflow.ts",
     "verify:db": "ts-node src/scripts/verifyTimeSeriesData.ts"
+  },
+  "nodemonConfig": {
+    "execMap": {
+      "ts": "ts-node"
+    },
+    "ext": "ts",
+    "watch": [
+      "src"
+    ]
   },
   "repository": {
     "type": "git",

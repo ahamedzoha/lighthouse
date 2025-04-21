@@ -1,7 +1,7 @@
 import pkg from "pg"
 const { Pool } = pkg
 import type { Pool as PoolType } from "pg"
-import { ScrapedData } from "../types.ts"
+import { ScrapedData } from "../types"
 
 /**
  * TimeSeriesDB handles operations for managing and querying time-series data

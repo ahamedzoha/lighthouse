@@ -1,4 +1,4 @@
-import { ScrapedData } from "../../types.ts";
+import { ScrapedData } from "../../types"
 /**
  * Scrapes stock market data from the DSE website.
  *
@@ -20,4 +20,4 @@ import { ScrapedData } from "../../types.ts";
  *   }
  * })();
  */
-export declare function scrapeDSE(): Promise<ScrapedData[]>;
+export declare function scrapeDSE(): Promise<ScrapedData[]>

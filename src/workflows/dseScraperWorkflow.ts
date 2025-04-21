@@ -1,5 +1,5 @@
 import { proxyActivities } from "@temporalio/workflow"
-import { Activities } from "../activities/index.ts"
+import { Activities } from "../activities/index"
 
 const { scrapeActivity, validateActivity, insertDbActivity } =
   proxyActivities<Activities>({
