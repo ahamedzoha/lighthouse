@@ -1,7 +1,7 @@
 import { Worker, NativeConnection } from "@temporalio/worker"
-import { activities } from "./activities/index.ts"
-import { fileURLToPath } from "url"
-import path from "path"
+import { activities } from "./activities/index"
+// import { fileURLToPath } from "url"
+// import path from "path"
 
 /**
  * Initializes and runs the Temporal worker.
@@ -13,29 +13,27 @@ import path from "path"
  * // npm run start:worker
  */
 async function run() {
-  // Get the current file's directory in ESM
-  const __filename = fileURLToPath(import.meta.url)
-  const __dirname = path.dirname(__filename)
-  
+  // const __filename = fileURLToPath("")
+  // const __dirname = path.dirname(__filename)
+
   // Log for debugging
-  console.log("Current directory:", __dirname)
-  
+  // console.log("Current directory:", __dirname)
+
   try {
-    const temporalAddress = process.env.TEMPORAL_ADDRESS || 'temporal:7233'
+    const temporalAddress = process.env.TEMPORAL_ADDRESS || "temporal:7233"
     console.log(`Connecting to Temporal server at ${temporalAddress}`)
-    
+
     // Create connection explicitly
     const connection = await NativeConnection.connect({
-      address: temporalAddress
-    });
-    
+      address: temporalAddress,
+    })
+
     // Create worker with explicit connection
     const worker = await Worker.create({
       connection,
-      workflowsPath: path.resolve(
-        __dirname, 'workflows', 'dseScraperWorkflow.js'),
+      workflowsPath: require.resolve("./workflows/dseScraperWorkflow"),
       activities,
-      taskQueue: "scraping"
+      taskQueue: "scraping",
     })
 
     console.log("Worker created successfully")
