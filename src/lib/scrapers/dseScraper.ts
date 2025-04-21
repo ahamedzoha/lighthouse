@@ -28,7 +28,14 @@ export async function scrapeDSE(): Promise<ScrapedData[]> {
   const browser = await puppeteer.launch({
     headless: true,
     // Add these options to help with reliability
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: [ '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-crash-reporter',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'],
   })
 
   try {
