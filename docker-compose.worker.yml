@@ -1,0 +1,20 @@
+services:
+  production-worker:
+    build:
+      context: .
+    container_name: lighthouse-worker
+    command: ["node", "dist/worker.js"]
+    environment:
+      - TEMPORAL_ADDRESS=${WORKER_TEMPORAL_ADDRESS:-temporal:7233}
+      - DB_HOST=${WORKER_DB_HOST}
+      - DB_PORT=${WORKER_DB_PORT:-5432}
+      - DB_USER=${WORKER_DB_USER:-postgres}
+      - DB_NAME=${WORKER_DB_NAME}
+      - DB_PASSWORD=${WORKER_DB_PASSWORD}
+      - NODE_ENV=${NODE_ENV:-production}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Worker health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
