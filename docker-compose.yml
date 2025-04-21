@@ -75,7 +75,7 @@ services:
       context: . # Build using Dockerfile in the current directory
     # Use container_name for easier local identification (optional)
     container_name: lighthouse-worker-dev
-    command: ["npx", "nodemon", "--exec", "node --loader ts-node/esm", "src/worker.ts"] 
+    command: ["npx", "nodemon", "src/worker.ts"] 
     volumes:
       # Mount local source code into the container
       # Needed for nodemon to detect changes
