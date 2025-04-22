@@ -101,7 +101,7 @@
     # Set environment variables for Puppeteer & Node
     ENV NODE_ENV=production
     ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-    ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
     
     # Ensure files are owned by pptruser (default user in puppeteer image)
     RUN chown -R pptruser:pptruser /app
