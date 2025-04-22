@@ -5,19 +5,23 @@ import { activities } from "./activities/index"
 
 /**
  * Initializes and runs the Temporal worker.
- *
- * This worker listens on the "scraping" task queue for workflow tasks and runs them.
+ * 
+ * This worker connects to the Temporal server, registers activities and workflows,
+ * and listens on the "scraping" task queue for workflow tasks.
+ * 
+ * The worker is responsible for executing the scraping activities when
+ * triggered by the Temporal scheduler.
  *
  * @example
  * // To start the worker:
  * // npm run start:worker
+ * // or in development:
+ * // npm run dev:worker
+ * 
+ * @returns {Promise<void>} A promise that resolves when the worker starts successfully or rejects on error
  */
 async function run() {
-  // const __filename = fileURLToPath("")
-  // const __dirname = path.dirname(__filename)
-
-  // Log for debugging
-  // console.log("Current directory:", __dirname)
+ 
 
   try {
     const temporalAddress = process.env.TEMPORAL_ADDRESS || "temporal:7233"

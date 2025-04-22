@@ -1,5 +1,22 @@
 import { Client, SearchAttributes, Connection } from "@temporalio/client"
 
+/**
+ * Initializes and runs the Temporal scheduler.
+ * 
+ * This function connects to the Temporal server and creates a schedule for the DSE market scraper.
+ * The schedule is configured to run the dseScraperWorkflow every 2 minutes during trading hours
+ * (10:00-14:30 Bangladesh time) on weekdays.
+ * 
+ * If the schedule already exists, it will inform the user how to delete it first.
+ * 
+ * @returns {Promise<void>} A promise that resolves when the schedule is created successfully or rejects on error
+ * 
+ * @example
+ * // To start the scheduler:
+ * // npm run start:scheduler
+ * // or in development:
+ * // npm run dev:scheduler
+ */
 async function run() {
   const temporalAddress = process.env.TEMPORAL_ADDRESS || 'temporal:7233';
   console.log(`Connecting to Temporal server at ${temporalAddress}`);
