@@ -66,7 +66,7 @@
 # Dockerfile for Node.js App with TypeScript, Puppeteer on Node 22 Slim (Production Ready)
 
 # ---- Base Stage: Install dependencies and build ----
-    FROM puppeteer:24.6.1 AS base
+    FROM puppeteer:latest AS base
     WORKDIR /app
     COPY package.json package-lock.json* ./
     # Install ALL dependencies needed for build (might include devDeps like typescript)
@@ -76,7 +76,7 @@
     RUN npm run build
     
     # ---- Final Stage: Setup runtime environment ----
-    FROM puppeteer:24.6.1 AS final
+    FROM puppeteer:latest AS final
     WORKDIR /app
     
     # # Install system dependencies required by Puppeteer/Chromium
